@@ -2,89 +2,118 @@
 session_start();
 include 'db.php';
 
-// Optionally, redirect if user is already logged in
+// Redirect if user is already logged in
 if (isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
     exit();
 }
 
+$error = ''; // Store error message
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Trim input data to remove extra spaces
+    // Trim input data
     $name = trim($_POST['name']);
     $username = trim($_POST['username']);
     $email = trim($_POST['email']);
     $passwordInput = $_POST['password'];
+    $year_of_joining = trim($_POST['year_of_joining']);
+    $branch = trim($_POST['branch']);
 
-    // Check if user already exists with the same email or username
-    $stmt = $conn->prepare("SELECT * FROM users WHERE email = :email OR username = :username");
-    $stmt->bindParam(':email', $email);
-    $stmt->bindParam(':username', $username);
-    $stmt->execute();
-    $existingUser = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($existingUser) {
-        // User already exists, display an error message
-        echo '<div class="alert alert-danger" role="alert">
-                A user with this email or username already exists. Please login instead.
-              </div>';
+    // Validate email domain
+    if (!preg_match('/@smit\.smu\.edu\.in$/', $email)) {
+        $error = "Invalid email! Use an @smit.smu.edu.in email.";
     } else {
-        // Hash the password using BCRYPT before storing it
-        $password = password_hash($passwordInput, PASSWORD_BCRYPT);
-
-        // Insert the new user into the database
-        $stmt = $conn->prepare("INSERT INTO users (name, username, email, password) VALUES (:name, :username, :email, :password)");
-        $stmt->bindParam(':name', $name);
-        $stmt->bindParam(':username', $username);
+        // Check if username or email already exists
+        $stmt = $conn->prepare("SELECT username, email FROM users WHERE email = :email OR username = :username");
         $stmt->bindParam(':email', $email);
-        $stmt->bindParam(':password', $password);
+        $stmt->bindParam(':username', $username);
+        $stmt->execute();
+        $existingUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($stmt->execute()) {
-            echo '<div class="alert alert-success" role="alert">
-                    Signup successful! <a href="login.php">Login here</a>
-                  </div>';
+        if ($existingUser) {
+            if ($existingUser['username'] === $username) {
+                $error = "Username already exists. Please choose another.";
+            } elseif ($existingUser['email'] === $email) {
+                $error = "Email already exists. Please login instead.";
+            }
         } else {
-            echo '<div class="alert alert-danger" role="alert">
-                    Signup failed! Please try again.
-                  </div>';
+            // Hash password
+            $password = password_hash($passwordInput, PASSWORD_BCRYPT);
+
+            // Insert user into database
+            $stmt = $conn->prepare("INSERT INTO users (name, username, email, password, year_of_joining, branch) VALUES (:name, :username, :email, :password, :year_of_joining, :branch)");
+            $stmt->bindParam(':name', $name);
+            $stmt->bindParam(':username', $username);
+            $stmt->bindParam(':email', $email);
+            $stmt->bindParam(':password', $password);
+            $stmt->bindParam(':year_of_joining', $year_of_joining);
+            $stmt->bindParam(':branch', $branch);
+
+            if ($stmt->execute()) {
+                $success = "Signup successful! <a href='login.php'>Login here</a>";
+            } else {
+                $error = "Signup failed! Please try again.";
+            }
         }
     }
 }
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Signup</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" 
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" 
-          crossorigin="anonymous">
+    <link rel="stylesheet" href="./css/signup.css">
 </head>
 <body>
-    <div class="container mt-5">
+    <div class="container">
         <h2>Signup</h2>
+        <?php if (!empty($error)) { echo "<div class='alert error'>$error</div>"; } ?>
+        <?php if (!empty($success)) { echo "<div class='alert success'>$success</div>"; } ?>
         <form method="POST" action="">
-            <div class="mb-3">
-                <label for="name" class="form-label">Name:</label>
-                <input type="text" class="form-control" id="name" name="name" required>
+            <div class="input-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
             </div>
-            <div class="mb-3">
-                <label for="username" class="form-label">Username:</label>
-                <input type="text" class="form-control" id="username" name="username" required>
+            <div class="input-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
             </div>
-            <div class="mb-3">
-                <label for="email" class="form-label">Email:</label>
-                <input type="email" class="form-control" id="email" name="email" required>
+            <div class="input-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
             </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Password:</label>
-                <input type="password" class="form-control" id="password" name="password" required>
+            <div class="input-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn btn-primary">Signup</button>
+            <div class="input-group">
+                <label for="year_of_joining">Year of Joining:</label>
+                <select id="year_of_joining" name="year_of_joining" required>
+                    <option value="">Select Year</option>
+                    <?php
+                        $currentYear = date("Y");
+                        for ($year = 2015; $year <= $currentYear; $year++) {
+                            echo "<option value='$year'>$year</option>";
+                        }
+                    ?>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="branch">Branch:</label>
+                <select name="branch" id="branch" required>
+                    <option value="BCA">BCA</option>
+                    <option value="MCA">MCA</option>
+                    <option value="B.Tech">B.Tech</option>
+                    <option value="B.Sc">B.Sc</option>
+                    <option value="CS">CS</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">Signup</button>
         </form>
-        <p class="mt-3">Already have an account? <a href="login.php">Login here</a></p>
+        <p class="login-link">Already have an account? <a href="login.php">Login here</a></p>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
-            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" 
-            crossorigin="anonymous"></script>
 </body>
 </html>

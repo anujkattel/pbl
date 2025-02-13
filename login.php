@@ -4,9 +4,11 @@ include 'db.php';
 
 // Check if the user is already logged in
 if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php");
+    header("Location: welcome.php"); // Redirect to welcome screen
     exit();
 }
+
+$error = ''; // Store error messages
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'];
@@ -20,50 +22,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($user && password_verify($password, $user['password'])) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['role'] = $user['role'];
+        $_SESSION['name'] = $user['name']; // Store user name for welcome page
 
-        // If user is admin, open the admin panel in a new tab and redirect current tab to dashboard
+        // If user is admin, open admin panel in a new tab
         if ($user['role'] === 'admin') {
             echo '<script>
                     window.open("adminpanel.php", "_blank");
-                    window.location.href="dashboard.php";
+                    window.location.href="welcome.php";
                   </script>';
             exit();
         } else {
-            header("Location: dashboard.php");
+            header("Location: welcome.php"); // Redirect to welcome screen
             exit();
         }
     } else {
-        echo '<div class="alert alert-danger" role="alert">Invalid email or password!</div>';
+        $error = "Invalid email or password!";
     }
 }
 ?>
+
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <!-- <link rel="stylesheet" href="./css/login.css"> -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/login.css">
 </head>
-
 <body>
-    <div class="container mt-5">
-
+    <div class="login-container">
         <h2>Login</h2>
+        <?php if ($error) echo "<div class='error'>$error</div>"; ?>
         <form method="POST" action="">
-            <div class="mb-3">
-                <label for="email" class="form-label">Email:</label>
-                <input type="email" class="form-control" id="email" name="email" required>
+            <div class="input-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
             </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Password:</label>
-                <input type="password" class="form-control" id="password" name="password" required>
+            <div class="input-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn btn-primary">Login</button>
+            <button type="submit" class="btn">Login</button>
         </form>
-        <p class="mt-3">Don't have an account? <a href="signup.php">Signup here</a></p>
+        <p>Don't have an account? <a href="signup.php">Signup here</a></p>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
-
 </html>
