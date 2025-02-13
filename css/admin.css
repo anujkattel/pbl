@@ -1,0 +1,102 @@
+/* General Page Styling */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    display: flex;
+    height: 100vh;
+    background-color: #f8f9fa;
+}
+
+/* Sidebar */
+#sidebar {
+    background-color: #343a40;
+    width: 250px;
+    padding: 20px;
+    color: white;
+    height: 100vh;
+    position: fixed;
+}
+
+#sidebar h4 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.nav-link {
+    color: white;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.nav-link:hover {
+    background: #495057;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 270px;
+    padding: 20px;
+    flex-grow: 1;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+/* User Table */
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.user-table th, .user-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.user-table th {
+    background-color: #007bff;
+    color: white;
+}
+
+.user-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* Buttons */
+.btn {
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+.edit {
+    background-color: #ffc107;
+    color: black;
+    border: none;
+}
+
+.delete {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+}
+
+.edit:hover {
+    background-color: #e0a800;
+}
+
+.delete:hover {
+    background-color: #c82333;
+}

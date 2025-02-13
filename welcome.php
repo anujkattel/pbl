@@ -9,7 +9,7 @@ $name = $_SESSION['name'];  // Get user’s name
 $role = $_SESSION['role'];  // Get user’s role
 
 // Redirect URL based on role
-$redirectUrl = ($role === 'admin') ? 'adminpanel.php' : 'dashboard.php';
+$redirectUrl = ($role === 'admin') ? 'adminpannel.php' : 'dashboard.php';
 ?>
 
 <!DOCTYPE html>
