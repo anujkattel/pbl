@@ -50,7 +50,6 @@ input, select {
     cursor: pointer;
     font-size: 16px;
 }
-
 .btn:hover {
     background: #0056b3;
 }

@@ -85,10 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vote']) && !$hasVoted
       padding: 20px;
     }
   </style>
+  <link rel="stylesheet" href="./css/admin.css">
 </head>
 <body class="d-flex">
-  <!-- Sidebar Navigation -->
-  <nav class="d-flex flex-column p-3 text-white" id="sidebar">
+<nav class="d-flex flex-column p-3 text-white" id="sidebar">
     <h4 class="text-center mt-3">Dashboard</h4>
     <ul class="nav flex-column">
       <li class="nav-item mb-3">
@@ -122,9 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vote']) && !$hasVoted
       </li>
     </ul>
   </nav>
-
   <!-- Main Content -->
-  <div class="content" id="content">
+  <div class="main-content">
     <div class="container mt-4">
       <div class="container mt-4">
         <h2 class="mb-4">Vote for Your Candidate</h2>

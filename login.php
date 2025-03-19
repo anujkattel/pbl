@@ -2,13 +2,13 @@
 session_start();
 include 'db.php';
 
-// Check if the user is already logged in
+// check if user has login or not
 if (isset($_SESSION['user_id'])) {
-    header("Location: welcome.php"); // Redirect to welcome screen
+    header("Location: welcome.php"); 
     exit();
 }
 
-$error = ''; // Store error messages
+$error = ''; // Store error 
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'];
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                   </script>';
             exit();
         } else {
-            header("Location: welcome.php"); // Redirect to welcome screen
+            header("Location: welcome.php");
             exit();
         }
     } else {
