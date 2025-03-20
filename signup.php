@@ -2,57 +2,66 @@
 session_start();
 include 'db.php';
 
-// Redirect if user is already logged in
-if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php");
-    exit();
-}
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-$error = ''; // Store error message
+require 'vendor/autoload.php';
+
+$error = '';
+$success = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Trim input data
     $name = trim($_POST['name']);
-    $username = trim($_POST['username']);
     $email = trim($_POST['email']);
-    $passwordInput = $_POST['password'];
-    $year_of_joining = trim($_POST['year_of_joining']);
-    $branch = trim($_POST['branch']);
+    $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
-    // Validate email domain
+    // ✅ Validate the email domain
     if (!preg_match('/@smit\.smu\.edu\.in$/', $email)) {
-        $error = "Invalid email! Use an @smit.smu.edu.in email.";
+        $error = "Invalid email! Only '@smit.smu.edu.in' emails are allowed.";
     } else {
-        // Check if username or email already exists
-        $stmt = $conn->prepare("SELECT username, email FROM users WHERE email = :email OR username = :username");
+        // Check if user already exists
+        $stmt = $conn->prepare("SELECT * FROM users WHERE email = :email");
         $stmt->bindParam(':email', $email);
-        $stmt->bindParam(':username', $username);
         $stmt->execute();
-        $existingUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($existingUser) {
-            if ($existingUser['username'] === $username) {
-                $error = "Username already exists. Please choose another.";
-            } elseif ($existingUser['email'] === $email) {
-                $error = "Email already exists. Please login instead.";
-            }
+        if ($stmt->rowCount() > 0) {
+            $error = "Email already exists. Please login.";
         } else {
-            // Hash password
-            $password = password_hash($passwordInput, PASSWORD_BCRYPT);
+            $token = bin2hex(random_bytes(32)); // Generate verification token
 
-            // Insert user into database
-            $stmt = $conn->prepare("INSERT INTO users (name, username, email, password, year_of_joining, branch) VALUES (:name, :username, :email, :password, :year_of_joining, :branch)");
+            // Insert into database with `is_verified` flag set to 0
+            $stmt = $conn->prepare("INSERT INTO users (name, email, password, token, is_verified) VALUES (:name, :email, :password, :token, 0)");
             $stmt->bindParam(':name', $name);
-            $stmt->bindParam(':username', $username);
             $stmt->bindParam(':email', $email);
             $stmt->bindParam(':password', $password);
-            $stmt->bindParam(':year_of_joining', $year_of_joining);
-            $stmt->bindParam(':branch', $branch);
+            $stmt->bindParam(':token', $token);
+            $stmt->execute();
 
-            if ($stmt->execute()) {
-                $success = "Signup successful! <a href='login.php'>Login here</a>";
-            } else {
-                $error = "Signup failed! Please try again.";
+            // Send verification email
+            $mail = new PHPMailer(true);
+
+            try {
+                $mail->isSMTP();
+                $mail->Host = $_ENV['SMTP_HOST'];
+                $mail->SMTPAuth = true;
+                $mail->Username = $_ENV['SMTP_USERNAME'];
+                $mail->Password = $_ENV['SMTP_PASSWORD'];
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port = $_ENV['SMTP_PORT'];
+
+                $mail->setFrom($_ENV['SMTP_USERNAME'], 'Account Verification');
+                $mail->addAddress($email);
+
+                $mail->isHTML(true);
+                $mail->Subject = 'Verify Your Email';
+
+                $verificationLink = "http://localhost/group5/verify.php?token=$token";
+                $mail->Body = "Click the link to verify your account: <a href='$verificationLink'>Verify Email</a>";
+
+                $mail->send();
+                $success = "Signup successful! Please check your email to verify your account.";
+            } catch (Exception $e) {
+                $error = "Failed to send verification email. Error: {$mail->ErrorInfo}";
             }
         }
     }
@@ -61,59 +70,162 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Signup</title>
     <link rel="stylesheet" href="./css/signup.css">
+    <style>
+        /* General styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Body styling */
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: #333;
+        }
+
+        /* Container for the form */
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        form {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            transition: 0.3s;
+        }
+
+        /* Form fields */
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        /* Input focus effect */
+        input:focus {
+            outline: none;
+            border-color: #6a11cb;
+            box-shadow: 0 0 5px rgba(106, 17, 203, 0.5);
+        }
+
+        /* Button styling */
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2575fc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #1e63d9;
+        }
+
+        /* Message styles */
+        p {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #333;
+
+        }
+
+        /* Error and success messages */
+        p[style*="color:red"] {
+            color: #ff4d4d !important;
+            background: #ffecec;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ff4d4d;
+            margin-bottom: 15px;
+        }
+
+        p[style*="color:green"] {
+            color: #28a745 !important;
+            background: #e8f5e9;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #28a745;
+            margin-bottom: 15px;
+        }
+
+        /* Link styling */
+        a {
+            color: #2575fc;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        a:hover {
+            color: #1e63d9;
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            form {
+                padding: 20px;
+            }
+
+            input,
+            button {
+                font-size: 14px;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <div class="container">
+
+    <form method="POST" action="">
         <h2>Signup</h2>
-        <?php if (!empty($error)) { echo "<div class='alert error'>$error</div>"; } ?>
-        <?php if (!empty($success)) { echo "<div class='alert success'>$success</div>"; } ?>
-        <form method="POST" action="">
-            <div class="input-group">
-                <label for="name">Name:</label>
-                <input type="text" id="name" name="name" required>
-            </div>
-            <div class="input-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required>
-            </div>
-            <div class="input-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-            <div class="input-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <div class="input-group">
-                <label for="year_of_joining">Year of Joining:</label>
-                <select id="year_of_joining" name="year_of_joining" required>
-                    <option value="">Select Year</option>
-                    <?php
-                        $currentYear = date("Y");
-                        for ($year = 2015; $year <= $currentYear; $year++) {
-                            echo "<option value='$year'>$year</option>";
-                        }
-                    ?>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="branch">Branch:</label>
-                <select name="branch" id="branch" required>
-                    <option value="BCA">BCA</option>
-                    <option value="MCA">MCA</option>
-                    <option value="B.Tech">B.Tech</option>
-                    <option value="B.Sc">B.Sc</option>
-                    <option value="CS">CS</option>
-                </select>
-            </div>
-            <button type="submit" class="btn">Signup</button>
-        </form>
-        <p class="login-link">Already have an account? <a href="login.php">Login here</a></p>
-    </div>
+        <?php if ($error) echo "<p style='color:red;'>$error</p>"; ?>
+        <?php if ($success) echo "<p style='color:green;'>$success</p>"; ?>
+        <label>Name:</label>
+        <input type="text" name="name" required>
+
+        <label>Email:</label>
+        <input type="email" name="email" required>
+
+        <label>Password:</label>
+        <input type="password" name="password" required>
+
+        <button type="submit">Signup</button>
+        <p>Already have an account? <a href="login.php">Login</a></p>
+    </form>
 </body>
+
 </html>
