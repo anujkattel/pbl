@@ -12,11 +12,12 @@ $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $name = trim($_POST['name']);
+    $username = trim($_POST['username']);
     $email = trim($_POST['email']);
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
     // ✅ Validate the email domain
-    if (!preg_match('/@smit\.smu\.edu\.in$/', $email)) {
+    if ((!preg_match('/@gmail\.com$/', $email))) {
         $error = "Invalid email! Only '@smit.smu.edu.in' emails are allowed.";
     } else {
         // Check if user already exists
@@ -30,8 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $token = bin2hex(random_bytes(32)); // Generate verification token
 
             // Insert into database with `is_verified` flag set to 0
-            $stmt = $conn->prepare("INSERT INTO users (name, email, password, token, is_verified) VALUES (:name, :email, :password, :token, 0)");
+            $stmt = $conn->prepare("INSERT INTO users (name,username, email, password, token, is_verified) VALUES (:name,:username, :email, :password, :token, 0)");
             $stmt->bindParam(':name', $name);
+            $stmt->bindParam(':username', $username);
             $stmt->bindParam(':email', $email);
             $stmt->bindParam(':password', $password);
             $stmt->bindParam(':token', $token);
@@ -216,6 +218,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php if ($success) echo "<p style='color:green;'>$success</p>"; ?>
         <label>Name:</label>
         <input type="text" name="name" required>
+
+        <label>username:</label>
+        <input type="text" name="username" required>
 
         <label>Email:</label>
         <input type="email" name="email" required>

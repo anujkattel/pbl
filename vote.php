@@ -138,7 +138,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vote']) && !$hasVoted
                   <div class="card p-3 mb-3">
                     <h4><?php echo htmlspecialchars($candidate['name']); ?></h4>
                     <p><?php echo htmlspecialchars($candidate['email']); ?></p>
-                    <p><strong>Votes:</strong> <?php echo $candidate['votes'] ?? 0; ?></p>
                     <!-- The vote button sends the candidate's id as the vote value -->
                     <button type="submit" name="vote" value="<?php echo $candidate['id']; ?>" class="btn btn-primary">Vote</button>
                   </div>
