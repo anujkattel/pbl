@@ -30,12 +30,13 @@ $application = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Handle Apply request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply'])) {
-  $stmt = $conn->prepare("INSERT INTO votes (user_id, name, username, email, status) 
-                          VALUES (:user_id, :name, :username, :email, 'pending')");
+  $stmt = $conn->prepare("INSERT INTO votes (user_id, name, username, email, status, semester,election_type) 
+                          VALUES (:user_id, :name, :username, :email, 'pending',:semester,'CR')");
   $stmt->bindParam(':user_id', $user_id);
   $stmt->bindParam(':name', $user['name']);
   $stmt->bindParam(':username', $user['username']);
   $stmt->bindParam(':email', $user['email']);
+  $stmt->bindParam(':semester', $user['semester']);
   $stmt->execute();
 
   header("Location: dashboard.php");
@@ -118,6 +119,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </a>
         </li>
       <?php endif; ?>
+      <?php if ($role === 'user'): ?>
+        <li class="nav-item mb-3">
+          <a href="notification.php" class="nav-link text-white">
+            <i class="fa-solid fa-bell"></i> <span class="m-2">Notification</span>
+          </a>
+        </li>
+      <?php endif; ?>
       <?php if ($role === 'admin'): ?>
         <li class="nav-item mb-3">
           <a href="adminpannel.php" class="nav-link text-white">
@@ -156,6 +164,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="mb-3">
               <label class="form-label">Email</label>
               <input type="email" class="form-control" value="<?php echo htmlspecialchars($user['email']); ?>" disabled>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">semester</label>
+              <input type="email" class="form-control" value="<?php echo htmlspecialchars($user['semester']); ?>" disabled>
             </div>
           </form>
         </div>
