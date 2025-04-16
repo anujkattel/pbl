@@ -23,14 +23,14 @@ if (!$user) {
 }
 
 // Check if the user has already applied
-$stmt = $conn->prepare("SELECT * FROM votes WHERE user_id = :user_id");
+$stmt = $conn->prepare("SELECT * FROM candidates WHERE user_id = :user_id");
 $stmt->bindParam(':user_id', $user_id);
 $stmt->execute();
 $application = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Handle Apply request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply'])) {
-  $stmt = $conn->prepare("INSERT INTO votes (user_id, name, username, email, status, semester,election_type) 
+  $stmt = $conn->prepare("INSERT INTO candidates (user_id, name, username, email, status, semester,election_type) 
                           VALUES (:user_id, :name, :username, :email, 'pending',:semester,'CR')");
   $stmt->bindParam(':user_id', $user_id);
   $stmt->bindParam(':name', $user['name']);
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply'])) {
 
 // Handle Cancel request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel'])) {
-  $stmt = $conn->prepare("DELETE FROM votes WHERE user_id = :user_id");
+  $stmt = $conn->prepare("DELETE FROM candidates WHERE user_id = :user_id");
   $stmt->bindParam(':user_id', $user_id);
   $stmt->execute();
 
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (isset($_POST['approve']) && isset($_POST['app_id'])) {
     $app_id = $_POST['app_id'];
-    $stmt = $conn->prepare("UPDATE votes SET status = 'approved' WHERE user_id = :app_id");
+    $stmt = $conn->prepare("UPDATE candidates SET status = 'approved' WHERE user_id = :app_id");
     $stmt->bindParam(':app_id', $app_id);
     $stmt->execute();
 
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if (isset($_POST['reject']) && isset($_POST['app_id'])) {
     $app_id = $_POST['app_id'];
-    $stmt = $conn->prepare("UPDATE votes SET status = 'rejected' WHERE user_id = :app_id");
+    $stmt = $conn->prepare("UPDATE candidates SET status = 'rejected' WHERE user_id = :app_id");
     $stmt->bindParam(':app_id', $app_id);
     $stmt->execute();
 
@@ -99,6 +99,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .content {
       flex: 1;
       padding: 20px;
+    }
+
+    img.img-thumbnail {
+      height: 150px;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+      border-radius: 50%;
     }
   </style>
 </head>
@@ -152,6 +159,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-header">Dashboard</div>
         <div class="card-body">
           <h4 class="card-title">Welcome, <?php echo htmlspecialchars($user['username']); ?>!</h4>
+          <?php
+          $profilePic = !empty($user['profile_pic']) ? $user['profile_pic'] : 'default.png';
+          ?>
+          <img src="<?php echo htmlspecialchars($profilePic); ?>" alt="Profile Picture" class="img-thumbnail mb-3" width="150" height="150">
           <form>
             <div class="mb-3">
               <label class="form-label">Full Name</label>
@@ -218,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </thead>
               <tbody>
                 <?php
-                $stmt = $conn->prepare("SELECT * FROM votes");
+                $stmt = $conn->prepare("SELECT * FROM candidates");
                 $stmt->execute();
                 $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

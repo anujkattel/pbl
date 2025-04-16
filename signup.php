@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $mail->isHTML(true);
                 $mail->Subject = 'Verify Your Email';
 
-                $verificationLink = "http://localhost/projects/group5/verify.php?token=$token";
+                $verificationLink = "http://localhost/group5/verify.php?token=$token";
                 $mail->Body = "
                 <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
         <h2 style='color: #4CAF50;'>Verify Your Email</h2>
