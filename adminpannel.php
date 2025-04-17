@@ -16,100 +16,168 @@ $stmt->execute();
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
+<?php include 'include/sidebar.php'; ?>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Users</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- FontAwesome for icons -->
-  <script src="https://kit.fontawesome.com/d9b4604fa2.js" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="css/admin.css">
-    <style>
-    #sidebar {
-      background-color: black;
-      height: 100vh;
-      width: 250px;
-    }
-    .content {
-      flex: 1;
+<style>
+  body {
+    background-color: #f4f7fc;
+    font-family: 'Inter', sans-serif;
+    color: #333;
+  }
+
+  .main-content {
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin: 20px;
+  }
+
+  .main-content h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 25px;
+  }
+
+  .user-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .user-table th,
+  .user-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .user-table th {
+    background: #f8fafd;
+    color: #2c3e50;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+  }
+
+  .user-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .user-table tr:hover {
+    background: #f1f5f9;
+    transition: background 0.3s ease;
+  }
+
+  .btnn {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  }
+
+  .btnn.edit {
+    background: #4a90e2;
+    color: #ffffff;
+    margin-right: 10px;
+  }
+
+  .btnn.edit:hover {
+    background: #357abd;
+    box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
+    transform: translateY(-2px);
+  }
+
+  .btnn.delete {
+    background: #e74c3c;
+    color: #ffffff;
+  }
+
+  .btnn.delete:hover {
+    background: #c0392b;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    .main-content {
       padding: 20px;
+      margin: 15px;
     }
-  </style>
-</head>
-<body class="d-flex">
-  <!-- Sidebar Navigation -->
-  <nav class="d-flex flex-column p-3 text-white" id="sidebar">
-    <h4 class="text-center mt-3">Dashboard</h4>
-    <ul class="nav flex-column">
-      <li class="nav-item mb-3">
-        <a href="dashboard.php" class="nav-link text-white">
-          <i class="fa-solid fa-house"></i> <span class="m-2">Home</span>
-        </a>
-      </li>
-      <?php if ($role === 'user'): ?>
-        <li class="nav-item mb-3">
-          <a href="vote.php" class="nav-link text-white">
-            <i class="fa-solid fa-gear"></i> <span class="m-2">Vote User</span>
-          </a>
-        </li>
-      <?php endif; ?>
-      <?php if ($role === 'admin'): ?>
-        <li class="nav-item mb-3">
-          <a href="adminpannel.php" class="nav-link text-white">
-            <i class="fa-solid fa-gear"></i> <span class="m-2">Admin Panel</span>
-          </a>
-        </li>
-        <li class="nav-item mb-3">
-          <a href="result.php" class="nav-link text-white">
-            <i class="fa-solid fa-chart-simple"></i> <span class="m-2">Result</span>
-          </a>
-        </li>
-      <?php endif; ?>
-      <li class="nav-item mb-3">
-        <a href="logout.php" class="nav-link text-white">
-          <i class="fa-solid fa-arrow-right"></i> <span class="m-2">Logout</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
-    <!-- Main Content -->
-    <main class="main-content">
-        <h1>Manage Users</h1>
-        <table class="user-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Year of Joining</th>
-                    <th>Branch</th>
-                    <th>Role</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($users as $user): ?>
-                    <tr>
-                        <td><?php echo $user['id']; ?></td>
-                        <td><?php echo htmlspecialchars($user['name']); ?></td>
-                        <td><?php echo htmlspecialchars($user['username']); ?></td>
-                        <td><?php echo htmlspecialchars($user['email']); ?></td>
-                        <td><?php echo $user['year_of_joining']; ?></td>
-                        <td><?php echo htmlspecialchars($user['branch']); ?></td>
-                        <td><?php echo htmlspecialchars($user['role']); ?></td>
-                        <td>
-                            <a href="edit_user.php?id=<?php echo $user['id']; ?>" class="btn edit">Edit</a>
-                            <a href="delete_user.php?id=<?php echo $user['id']; ?>" class="btn delete" onclick="return confirm('Are you sure?')">Delete</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </main>
 
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    .user-table th,
+    .user-table td {
+      padding: 10px;
+      font-size: 0.85rem;
+    }
+
+    .btnn {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .user-table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    .user-table th,
+    .user-table td {
+      font-size: 0.8rem;
+    }
+  }
+</style>
+
+<main class="main-content">
+  <h1>Manage Users</h1>
+  <table class="user-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Year of Joining</th>
+        <th>Branch</th>
+        <th>Role</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($users as $user): ?>
+        <tr>
+          <td><?php echo $user['id']; ?></td>
+          <td><?php echo htmlspecialchars($user['name']); ?></td>
+          <td><?php echo htmlspecialchars($user['username']); ?></td>
+          <td><?php echo htmlspecialchars($user['email']); ?></td>
+          <td><?php echo $user['year_of_joining']; ?></td>
+          <td><?php echo htmlspecialchars($user['branch']); ?></td>
+          <td><?php echo htmlspecialchars($user['role']); ?></td>
+          <td>
+            <a href="edit_user.php?id=<?php echo $user['id']; ?>" class="btnn edit">Edit</a>
+            <a href="delete_user.php?id=<?php echo $user['id']; ?>" class="btnn delete" onclick="return confirm('Are you sure you want to delete this user?')">Delete</a>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="./js/app.js"></script>
 </body>
 </html>

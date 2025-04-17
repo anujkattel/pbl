@@ -4,7 +4,7 @@ include 'db.php';
 
 // Check if user is already logged in
 if (isset($_SESSION['user_id'])) {
-    header("Location: welcome.php");
+    header("Location: dashboard.php");
     exit();
 }
 else{

@@ -4,7 +4,7 @@ include 'db.php';
 
 // Check if user is already logged in
 if (isset($_SESSION['user_id'])) {
-    header("Location: welcome.php");
+    header("Location: dashboard.php");
     exit();
 }
 
@@ -34,11 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($user['role'] === 'admin') {
                 echo '<script>
                         window.open("adminpanel.php", "_blank");
-                        window.location.href = "welcome.php";
+                        window.location.href = "dashboard.php";
                       </script>';
                 exit();
             } else {
-                header("Location: welcome.php");
+                header("Location: dashboard.php");
                 exit();
             }
         } else {

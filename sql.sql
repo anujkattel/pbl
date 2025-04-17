@@ -16,8 +16,6 @@ CREATE TABLE users (
     profile_pic VARCHAR(255) DEFAULT 'https://t4.ftcdn.net/jpg/03/64/21/11/360_F_364211147_1qgLVxv1Tcq0Ohz3FawUfrtONzz8nq3e.jpg' 
 );
 
-alter table users drop column profile_pic;
-
 CREATE TABLE candidates(
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -36,4 +34,12 @@ CREATE TABLE votes (
     voted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (voter_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
+);
+
+CREATE TABLE settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    semester VARCHAR(20) NOT NULL,
+    election_type VARCHAR(50) NOT NULL, -- e.g. 'general' or 'CAAS'
+    voting_open TINYINT(1) DEFAULT 0,   -- 0 = closed, 1 = open
+    UNIQUE (semester, election_type)
 );

@@ -25,15 +25,32 @@ if (!$user) {
 
 $semester = $user['semester'];
 
-// Fetch general election candidates (non-CAAS)
+// Get semester-wise voting status
+$general_voting_open = false;
+$caas_voting_open = false;
+
+$setting_stmt = $conn->prepare("SELECT election_type, voting_open FROM settings WHERE semester = :semester");
+$setting_stmt->bindParam(':semester', $semester);
+$setting_stmt->execute();
+$settings = $setting_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+foreach ($settings as $setting) {
+    if ($setting['election_type'] === 'general' && $setting['voting_open'] == 1) {
+        $general_voting_open = true;
+    }
+    if ($setting['election_type'] === 'CAAS' && $setting['voting_open'] == 1) {
+        $caas_voting_open = true;
+    }
+}
+
+// Fetch candidates
 $stmt = $conn->prepare("SELECT * FROM candidates WHERE status = 'approved' AND semester = :semester AND election_type != 'CAAS'");
-$stmt->bindParam(':semester', $semester, PDO::PARAM_STR);
+$stmt->bindParam(':semester', $semester);
 $stmt->execute();
 $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch CAAS election candidates
 $caas_stmt = $conn->prepare("SELECT * FROM candidates WHERE status = 'approved' AND semester = :semester AND election_type = 'CAAS'");
-$caas_stmt->bindParam(':semester', $semester, PDO::PARAM_STR);
+$caas_stmt->bindParam(':semester', $semester);
 $caas_stmt->execute();
 $caas_candidates = $caas_stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -43,103 +60,69 @@ $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
 $stmt->execute();
 $hasVoted = $stmt->rowCount() > 0;
 
+// Fetch voted candidate details if already voted
+$votedCandidate = null;
+if ($hasVoted) {
+    $stmt = $conn->prepare("SELECT c.* FROM votes v JOIN candidates c ON v.candidate_id = c.id WHERE v.voter_id = :user_id");
+    $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $votedCandidate = $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
 // Handle voting logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vote']) && !$hasVoted) {
     $candidate_id = $_POST['vote'];
 
-    // Validate selected candidate with semester match
+    // Check if selected candidate exists and matches user’s semester
     $stmt = $conn->prepare("SELECT * FROM candidates WHERE id = :candidate_id AND status = 'approved' AND semester = :semester");
     $stmt->bindParam(':candidate_id', $candidate_id, PDO::PARAM_INT);
     $stmt->bindParam(':semester', $semester, PDO::PARAM_STR);
     $stmt->execute();
+    $candidate = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($stmt->rowCount() == 0) {
+    if (!$candidate) {
         echo "<script>alert('Invalid candidate selection.');</script>";
     } else {
-        // Record the vote
-        $stmt = $conn->prepare("INSERT INTO votes (voter_id, candidate_id, voted_at) VALUES (:user_id, :candidate_id, NOW())");
-        $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
-        $stmt->bindParam(':candidate_id', $candidate_id, PDO::PARAM_INT);
-        $stmt->execute();
+        // Check if voting is open for that election type
+        $election_type = $candidate['election_type'];
+        if (($election_type === 'general' && !$general_voting_open) || ($election_type === 'CAAS' && !$caas_voting_open)) {
+            echo "<script>alert('Voting for this election type is currently closed.');</script>";
+        } else {
+            // Record vote
+            $stmt = $conn->prepare("INSERT INTO votes (voter_id, candidate_id, voted_at) VALUES (:user_id, :candidate_id, NOW())");
+            $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+            $stmt->bindParam(':candidate_id', $candidate_id, PDO::PARAM_INT);
+            $stmt->execute();
 
-        echo "<script>alert('Thank you for voting!'); window.location.href='vote.php';</script>";
-        exit();
+            echo "<script>alert('Thank you for voting!'); window.location.href='vote.php';</script>";
+            exit();
+        }
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Vote for Candidates</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://kit.fontawesome.com/d9b4604fa2.js" crossorigin="anonymous"></script>
-  <style>
-    #sidebar {
-      background-color: black;
-      height: 100vh;
-      width: 250px;
-    }
-    .content {
-      flex: 1;
-      padding: 20px;
-    }
-  </style>
-</head>
-<body class="d-flex">
 
-<!-- Sidebar -->
-<nav class="d-flex flex-column p-3 text-white" id="sidebar">
-  <h4 class="text-center mt-3">Dashboard</h4>
-  <ul class="nav flex-column">
-    <li class="nav-item mb-3">
-      <a href="dashboard.php" class="nav-link text-white">
-        <i class="fa-solid fa-house"></i> <span class="m-2">Home</span>
-      </a>
-    </li>
-    <?php if ($role === 'user'): ?>
-      <li class="nav-item mb-3">
-        <a href="vote.php" class="nav-link text-white">
-          <i class="fa-solid fa-gear"></i> <span class="m-2">Vote User</span>
-        </a>
-      </li>
-      <li class="nav-item mb-3">
-        <a href="notification.php" class="nav-link text-white">
-          <i class="fa-solid fa-bell"></i> <span class="m-2">Notification</span>
-        </a>
-      </li>
-    <?php endif; ?>
-    <?php if ($role === 'admin'): ?>
-      <li class="nav-item mb-3">
-        <a href="adminpannel.php" class="nav-link text-white">
-          <i class="fa-solid fa-gear"></i> <span class="m-2">Admin Panel</span>
-        </a>
-      </li>
-      <li class="nav-item mb-3">
-        <a href="result.php" class="nav-link text-white">
-          <i class="fa-solid fa-chart-simple"></i> <span class="m-2">Result</span>
-        </a>
-      </li>
-    <?php endif; ?>
-    <li class="nav-item mb-3">
-      <a href="logout.php" class="nav-link text-white">
-        <i class="fa-solid fa-arrow-right"></i> <span class="m-2">Logout</span>
-      </a>
-    </li>
-  </ul>
-</nav>
+<?php include 'include/sidebar.php'; ?>
 
-<!-- Main Content -->
 <div class="main-content container mt-4">
   <h2 class="mb-4">Vote for Your Candidate (Semester: <?php echo htmlspecialchars($semester); ?>)</h2>
 
-  <?php if ($hasVoted): ?>
+  <?php if (!$general_voting_open && !$caas_voting_open): ?>
+    <div class="alert alert-danger">Voting is currently closed for your semester.</div>
+  <?php elseif ($hasVoted): ?>
     <div class="alert alert-warning">You have already voted!</div>
+    <?php if ($votedCandidate): ?>
+      <div class="card mt-3 p-3">
+        <h5>You voted for:</h5>
+        <p><strong>Name:</strong> <?php echo htmlspecialchars($votedCandidate['name']); ?></p>
+        <p><strong>Email:</strong> <?php echo htmlspecialchars($votedCandidate['email']); ?></p>
+        <p><strong>Election Type:</strong> <?php echo htmlspecialchars($votedCandidate['election_type']); ?></p>
+      </div>
+    <?php endif; ?>
+
   <?php else: ?>
-    <!-- General Election Section -->
-    <?php if (count($candidates) > 0): ?>
-      <form method="POST" onsubmit="return confirm('Are you sure you want to vote? This action cannot be undone.');">
+
+    <?php if ($general_voting_open && count($candidates) > 0): ?>
+      <form method="POST" onsubmit="return confirm('Are you sure you want to vote?');">
         <h4>General Elections</h4>
         <div class="row">
           <?php foreach ($candidates as $candidate): ?>
@@ -155,8 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vote']) && !$hasVoted
       </form>
     <?php endif; ?>
 
-    <!-- CAAS Election Section -->
-    <?php if (count($caas_candidates) > 0): ?>
+    <?php if ($caas_voting_open && count($caas_candidates) > 0): ?>
       <form method="POST" onsubmit="return confirm('Are you sure you want to vote in CAAS elections?');">
         <h4 class="mt-5">CAAS Elections</h4>
         <div class="row">
@@ -172,10 +154,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vote']) && !$hasVoted
         </div>
       </form>
     <?php endif; ?>
+
+    <?php if (count($candidates) === 0 && count($caas_candidates) === 0): ?>
+      <div class="alert alert-info">No candidates available for your semester right now.</div>
+    <?php endif; ?>
+
   <?php endif; ?>
 </div>
 
-<!-- Bootstrap JS -->
+<script src="./js/app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
