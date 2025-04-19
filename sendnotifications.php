@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_notification']))
       }
     }
 
-    echo "<script>alert('Notification sent" . ($send_email ? " with email" : "") . "'); window.location.href='admin_send_notification.php';</script>";
+    echo "<script>alert('Notification sent" . ($send_email ? " with email" : "") . "'); window.location.href='sendnotifications.php';</script>";
     exit();
   } else {
     $error = "Notification content cannot be empty.";
@@ -62,51 +62,102 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_notification']))
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Send Notification</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f4f7fc;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .card {
+      border: none;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .ql-container {
+      border-radius: 0 0 0.5rem 0.5rem;
+      min-height: 200px;
+    }
+
+    .ql-toolbar {
+      border-radius: 0.5rem 0.5rem 0 0;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+
+    .form-select,
+    .form-check-input {
+      border-radius: 0.5rem;
+    }
+  </style>
 </head>
 
 <body>
   <?php include 'include/sidebar.php'; ?>
+  <div class="main-content">
 
-  <main class="main-content">
+    <div class="container mt-5">
+      <div class="card p-5">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Send Notification</h2>
 
-    <h1 class="mb-4">Send Notification</h1>
+        <?php if (isset($error)): ?>
+          <div class="alert alert-danger alert-dismissible fade show rounded-lg" role="alert">
+            <?php echo htmlspecialchars($error); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <?php endif; ?>
 
-    <?php if (isset($error)): ?>
-      <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-    <?php endif; ?>
+        <form method="POST">
+          <div class="mb-4">
+            <label for="recipient_id" class="form-label">Recipient</label>
+            <select name="recipient_id" id="recipient_id" class="form-select" required>
+              <option value="all">All Users</option>
+              <?php foreach ($users as $user): ?>
+                <option value="<?= $user['id']; ?>"><?= htmlspecialchars($user['username']); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
 
-    <form method="POST">
-      <div class="mb-3">
-        <label for="recipient_id" class="form-label">Recipient</label>
-        <select name="recipient_id" class="form-select" required>
-          <option value="all">All Users</option>
-          <?php foreach ($users as $user): ?>
-            <option value="<?= $user['id']; ?>"><?= htmlspecialchars($user['username']); ?></option>
-          <?php endforeach; ?>
-        </select>
+          <div class="mb-4">
+            <label class="form-label">Notification Content</label>
+            <div id="editor" class="bg-white"></div>
+            <input type="hidden" name="notification_content" id="notification_content">
+          </div>
+
+          <div class="form-check mb-4">
+            <input class="form-check-input" type="checkbox" name="send_email" id="send_email">
+            <label class="form-check-label" for="send_email">
+              Also send as email
+            </label>
+          </div>
+
+          <button type="submit" name="send_notification" class="btn btn-primary">Send Notification</button>
+        </form>
       </div>
-
-      <div class="mb-3">
-        <label class="form-label">Notification Content</label>
-        <div id="editor" style="background:#fff;"></div>
-        <input type="hidden" name="notification_content" id="notification_content">
-      </div>
-
-      <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" name="send_email" id="send_email">
-        <label class="form-check-label" for="send_email">
-          Also send as email
-        </label>
-      </div>
-
-      <button type="submit" name="send_notification" class="btn btn-primary">Send Notification</button>
-    </form>
-  </main>
-
+    </div>
+  </div>
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const quill = new Quill('#editor', {
       theme: 'snow',
@@ -128,8 +179,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_notification']))
       document.getElementById('notification_content').value = quill.root.innerHTML;
     });
   </script>
-  <script src="./js/app.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

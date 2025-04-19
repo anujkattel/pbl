@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_read'])) {
         $stmt->bindParam(':user_id', $user_id);
         $stmt->execute();
     }
-    header("Location: notifications.php");
+    header("Location: notification.php");
     exit();
 }
 
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_notification']
     $stmt->bindParam(':id', $notification_id);
     $stmt->bindParam(':user_id', $user_id);
     $stmt->execute();
-    header("Location: notifications.php");
+    header("Location: notification.php");
     exit();
 }
 
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_all_read'])) {
     $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE recipient_id = :user_id");
     $stmt->bindParam(':user_id', $user_id);
     $stmt->execute();
-    header("Location: notifications.php");
+    header("Location: notification.php");
     exit();
 }
 

@@ -1,72 +1,43 @@
 <?php
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-require 'vendor/autoload.php';
+session_start();
 include 'db.php';
+require 'vendor/autoload.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
-    $username = trim($_POST['username']);
+use PHPMailer\PHPMailer\PHPMailer;
 
-    // Validate email
-    if (!$email) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid email address.']);
-        exit;
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $email = trim($_POST['email']);
+
+    if (!preg_match('/@gmail\.com$/', $email)) {
+        die("Invalid email. Only Gmail allowed.");
     }
 
-    // Validate username (you can extend this to more validation if necessary)
-    if (empty($username)) {
-        echo json_encode(['status' => 'error', 'message' => 'Username cannot be empty.']);
-        exit;
-    }
-
-    // Check if the email already exists in the database
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
-
-    if ($user) {
-        echo json_encode(['status' => 'error', 'message' => 'Email already exists.']);
-        exit;
-    }
-
-    // Check if the username already exists in the database
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->execute([$username]);
-    $user = $stmt->fetch();
-
-    if ($user) {
-        echo json_encode(['status' => 'error', 'message' => 'Username already exists.']);
-        exit;
-    }
-
-    // Generate OTP
     $otp = rand(100000, 999999);
-    session_start();
     $_SESSION['otp'] = $otp;
+    $_SESSION['email'] = $email;
+    $_SESSION['otp_expiry'] = time() + 300; // 5 min expiry
 
-    // Send OTP via email using PHPMailer
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
+        $mail->Host = $_ENV['SMTP_HOST'];
         $mail->SMTPAuth = true;
-        $mail->Username = 'anujkattel6@gmail.com';
-        $mail->Password = 'tvfnfoijsmbrpffh';
-        $mail->SMTPSecure = 'tls';
-        $mail->Port = 587;
-        $mail->setFrom('sender@gmail.com', 'Welcome to voting app');
-        $mail->addAddress($email); // Receiver's email address
+        $mail->Username = $_ENV['SMTP_USERNAME'];
+        $mail->Password = $_ENV['SMTP_PASSWORD'];
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = $_ENV['SMTP_PORT'];
 
+        $mail->setFrom($_ENV['SMTP_USERNAME'], 'OTP Login');
+        $mail->addAddress($email);
         $mail->isHTML(true);
         $mail->Subject = 'Your OTP Code';
-        $mail->Body = "Your OTP code is <strong>$otp</strong>";
+        $mail->Body = "<p>Your OTP is: <strong>$otp</strong></p>";
 
         $mail->send();
-        echo json_encode(['status' => 'success', 'message' => 'OTP sent successfully.']);
+        header("Location: verify_otp.php");
+        exit();
     } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => 'Could not send OTP.']);
+        echo "Failed to send OTP: " . $mail->ErrorInfo;
     }
 }
 ?>

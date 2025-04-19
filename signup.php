@@ -1,11 +1,10 @@
 <?php
 session_start();
 include 'db.php';
+require 'vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
-
-require 'vendor/autoload.php';
 
 $error = '';
 $success = '';
@@ -19,11 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $semester = trim($_POST['semester']);
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
-    // ✅ Validate the email domain
     if (!preg_match('/@gmail\.com$/', $email)) {
         $error = "Invalid email! Only '@gmail.com' emails are allowed.";
     } else {
-        // Check if user already exists
+        // Check if email already exists
         $stmt = $conn->prepare("SELECT * FROM users WHERE email = :email");
         $stmt->bindParam(':email', $email);
         $stmt->execute();
@@ -31,26 +29,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($stmt->rowCount() > 0) {
             $error = "Email already exists. Please login.";
         } else {
-            $token = bin2hex(random_bytes(32)); // Generate verification token
+            // Generate OTP
+            $otp = rand(100000, 999999);
+            $_SESSION['otp'] = $otp;
+            $_SESSION['otp_expiry'] = time() + 300; // 5 minutes
+            $_SESSION['signup_data'] = [
+                'name' => $name,
+                'username' => $username,
+                'email' => $email,
+                'password' => $password,
+                'year_of_joining' => $year_of_joining,
+                'branch' => $branch,
+                'semester' => $semester
+            ];
 
-            // Insert into database with `is_verified` flag set to 0
-            $stmt = $conn->prepare("INSERT INTO users 
-                (name, username, email, password, year_of_joining, branch,semester, token, is_verified) 
-                VALUES (:name, :username, :email, :password, :year_of_joining, :branch,:semester, :token, 0)");
-
-            $stmt->bindParam(':name', $name);
-            $stmt->bindParam(':username', $username);
-            $stmt->bindParam(':email', $email);
-            $stmt->bindParam(':password', $password);
-            $stmt->bindParam(':year_of_joining', $year_of_joining);
-            $stmt->bindParam(':branch', $branch);
-            $stmt->bindParam(':semester', $semester);
-            $stmt->bindParam(':token', $token);
-            $stmt->execute();
-
-            // Send verification email
             $mail = new PHPMailer(true);
-
             try {
                 $mail->isSMTP();
                 $mail->Host = $_ENV['SMTP_HOST'];
@@ -60,29 +53,138 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
                 $mail->Port = $_ENV['SMTP_PORT'];
 
-                $mail->setFrom($_ENV['SMTP_USERNAME'], 'Account Verification');
+                $mail->setFrom($_ENV['SMTP_USERNAME'], 'Account OTP');
                 $mail->addAddress($email);
-
                 $mail->isHTML(true);
-                $mail->Subject = 'Verify Your Email';
-
-                $verificationLink = "http://localhost/group5/verify.php?token=$token";
+                $mail->Subject = 'Your OTP for Signup';
                 $mail->Body = "
-                <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-        <h2 style='color: #4CAF50;'>Verify Your Email</h2>
-        <p>Thank you for registering. Please verify your email by clicking the button below:</p>
-        <a href='$verificationLink' style='display: inline-block; padding: 10px 20px; font-size: 16px; color: #fff; background-color: #007BFF; text-decoration: none; border-radius: 5px;'>Verify Email</a>
-        <p>If you did not request this, please ignore this email.</p>
-        <hr>
-        <p style='font-size: 12px; color: #888;'>© 2025 <a href='https://smu.edu.in/smit.html/'>smit.</a> All rights reserved.</p>
-    </div>
-
+                <!DOCTYPE html>
+                <html lang='en'>
+                <head>
+                    <meta charset='UTF-8'>
+                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Caveat&display=swap');
+                
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            font-family: 'Poppins', sans-serif;
+                            background: linear-gradient(135deg, #1c1c2d, #3a3a52);
+                            color: #ffffff;
+                            overflow-x: hidden;
+                        }
+                
+                        .container {
+                            max-width: 600px;
+                            margin: 40px auto;
+                            background: rgba(255, 255, 255, 0.05);
+                            border-radius: 20px;
+                            padding: 40px 30px;
+                            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6);
+                            backdrop-filter: blur(10px);
+                        }
+                
+                        .header {
+                            text-align: center;
+                            padding-bottom: 30px;
+                            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                        }
+                
+                        .header h1 {
+                            font-family: 'Caveat', cursive;
+                            font-size: 48px;
+                            color: #ff7f50;
+                            margin: 0;
+                            text-shadow: 0 0 12px rgba(255, 127, 80, 0.7);
+                        }
+                
+                        .content {
+                            text-align: center;
+                            padding: 30px 0;
+                        }
+                
+                        .content p {
+                            font-size: 18px;
+                            line-height: 1.6;
+                            color: #e2e2e2;
+                            margin: 20px 0;
+                        }
+                
+                        .otp-box {
+                            display: inline-block;
+                            margin: 25px auto;
+                            padding: 20px 40px;
+                            font-size: 42px;
+                            font-weight: bold;
+                            letter-spacing: 8px;
+                            color: #ff4d4d;
+                            background: linear-gradient(135deg, #fff, #f1f1f1);
+                            border-radius: 15px;
+                            box-shadow: 0 0 30px rgba(255, 77, 77, 0.6), inset 0 0 15px rgba(255, 77, 77, 0.4);
+                            animation: pulse-glow 3s ease-in-out infinite;
+                        }
+                
+                        @keyframes pulse-glow {
+                            0%, 100% {
+                                transform: scale(1);
+                                box-shadow: 0 0 25px rgba(255, 77, 77, 0.6);
+                            }
+                            50% {
+                                transform: scale(1.05);
+                                box-shadow: 0 0 45px rgba(255, 77, 77, 1);
+                            }
+                        }
+                
+                        .footer {
+                            text-align: center;
+                            padding-top: 25px;
+                            border-top: 1px solid rgba(255, 255, 255, 0.2);
+                            font-size: 14px;
+                            color: #bbbbbb;
+                        }
+                
+                        @media (max-width: 600px) {
+                            .otp-box {
+                                font-size: 32px;
+                                padding: 15px 30px;
+                            }
+                
+                            .header h1 {
+                                font-size: 36px;
+                            }
+                
+                            .content p {
+                                font-size: 16px;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h1>OTP Mystique</h1>
+                        </div>
+                        <div class='content'>
+                            <p>Hello Adventurer,</p>
+                            <p>Your magical OTP is revealed below. Use it wisely, for it fades in <strong>5 minutes</strong>:</p>
+                            <div class='otp-box'>$otp</div>
+                            <p>Keep this code a secret and complete your quest promptly.</p>
+                        </div>
+                        <div class='footer'>
+                            <p>© 2025 Your Legendary App. Enchantments Reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
                 ";
 
                 $mail->send();
-                $success = "Signup successful! Please check your email to verify your account.";
+                setcookie("otpverify", "true", time() + 3600 * 30, "/");
+                header("Location: verify_otp.php");
+                exit();
             } catch (Exception $e) {
-                $error = "Failed to send verification email. Error: {$mail->ErrorInfo}";
+                $error = "Failed to send OTP email. Error: {$mail->ErrorInfo}";
             }
         }
     }
