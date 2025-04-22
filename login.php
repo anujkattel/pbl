@@ -37,7 +37,7 @@ if (isset($_COOKIE["otpverify"])) {
                 // Redirect admin and user
                 if ($user['role'] === 'admin') {
                     echo '<script>
-                        window.open("adminpanel.php", "_blank");
+                        window.open("adminpannel.php", "_blank");
                         window.location.href = "dashboard.php";
                       </script>';
                     exit();
@@ -61,155 +61,253 @@ if (isset($_COOKIE["otpverify"])) {
 
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Your App Name</title>
     <style>
-        /* General Styles */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #3f37c9;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --danger: #dc3545;
+            --success: #28a745;
+            --border-radius: 0.5rem;
+            --box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
         }
 
-        /* Body Styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #6a11cb, #2575fc);
-            color: #333;
+            padding: 1rem;
+            line-height: 1.6;
+            color: var(--dark);
         }
 
-        /* Container Styling */
-        h2 {
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1.5rem 2rem;
             text-align: center;
-            color: #333;
-
-            margin-bottom: 20px;
         }
 
-        form {
-            background: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-            transition: 0.3s;
+        .login-header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
         }
 
-        /* Form Fields */
-        label {
+        .login-header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .login-form {
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: bold;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dark);
         }
 
-        input {
+        .form-control {
             width: 100%;
-            padding: 12px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: 0.3s;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e1e5ee;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
         }
 
-        /* Input Focus Effect */
-        input:focus {
+        .form-control:focus {
             outline: none;
-            border-color: #6a11cb;
-            box-shadow: 0 0 5px rgba(106, 17, 203, 0.5);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
         }
 
-        /* Button Styling */
-        button {
+        .password-container {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--gray);
+            font-size: 1rem;
+        }
+
+        .btn {
+            display: block;
             width: 100%;
-            padding: 12px;
-            background: #2575fc;
+            padding: 0.75rem;
+            background: var(--primary);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 500;
             cursor: pointer;
-            font-size: 16px;
-            transition: 0.3s;
+            transition: var(--transition);
         }
 
-        button:hover {
-            background: #1e63d9;
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
         }
 
-        /* Message Styles */
-        p {
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .form-footer {
             text-align: center;
-            margin-top: 15px;
-            font-size: 14px;
-            color: #333;
-
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--gray);
         }
 
-        /* Error and Success Messages */
-        p[style*="color:red"] {
-            color: #ff4d4d !important;
-            background: #ffecec;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #ff4d4d;
-            margin-bottom: 15px;
-        }
-
-        p[style*="color:green"] {
-            color: #28a745 !important;
-            background: #e8f5e9;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #28a745;
-            margin-bottom: 15px;
-        }
-
-        /* Link Styling */
-        a {
-            color: #2575fc;
+        .form-footer a {
+            color: var(--primary);
             text-decoration: none;
-            transition: 0.3s;
+            font-weight: 500;
         }
 
-        a:hover {
-            color: #1e63d9;
+        .form-footer a:hover {
             text-decoration: underline;
         }
 
-        /* Responsive Design */
-        @media (max-width: 600px) {
-            form {
-                padding: 20px;
-            }
+        .alert {
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+        }
 
-            input,
-            button {
-                font-size: 14px;
+        .alert-danger {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--danger);
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: var(--success);
+            border-left: 4px solid var(--success);
+        }
+
+        .forgot-password {
+            display: block;
+            text-align: right;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 576px) {
+            .login-container {
+                max-width: 100%;
             }
+            
+            .login-header {
+                padding: 1.25rem 1.5rem;
+            }
+            
+            .login-form {
+                padding: 1.5rem;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-container {
+            animation: fadeIn 0.5s ease-out;
         }
     </style>
 </head>
 
 <body>
-    <form method="POST" action="">
-        <h2>Login</h2>
-        <?php if ($error) echo "<div class='error'>$error</div>"; ?>
-        <div class="input-group">
-            <label for="email">Email:</label>
-            <input type="text" id="email" name="email" required>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Welcome Back</h1>
+            <p>Sign in to access your account</p>
         </div>
-        <div class="input-group">
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        <button type="submit" class="btn">Login</button>
-        <p>Don't have an account? <a href="signup.php">Signup here</a></p>
-    </form>
+        
+        <form method="POST" action="" class="login-form">
+            <?php if ($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
+            
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-container">
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+                    <button type="button" class="password-toggle" aria-label="Toggle password visibility">
+                        👁️
+                    </button>
+                </div>
+                <a href="resetpw.php" class="forgot-password">Forgot password?</a>
+            </div>
+            
+            <button type="submit" class="btn">Login</button>
+            
+            <div class="form-footer">
+                Don't have an account? <a href="signup.php">Sign up</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        const passwordToggle = document.querySelector('.password-toggle');
+        const passwordInput = document.getElementById('password');
+        
+        passwordToggle.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            passwordToggle.textContent = type === 'password' ? '👁️' : '🔒';
+        });
+    </script>
 </body>
 
 </html>

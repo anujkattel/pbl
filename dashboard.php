@@ -1,121 +1,278 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
+
+// Security headers
+header("X-Frame-Options: DENY");
+header("X-Content-Type-Options: nosniff");
+header("X-XSS-Protection: 1; mode=block");
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
   header("Location: login.php");
   exit();
 }
 
-include 'db.php';
+// Include database connection
+require_once 'db.php';
+
+// Regenerate session ID to prevent session fixation
+if (!isset($_SESSION['created'])) {
+  $_SESSION['created'] = time();
+} else if (time() - $_SESSION['created'] > 1800) {
+  session_regenerate_id(true);
+  $_SESSION['created'] = time();
+}
 
 $user_id = $_SESSION['user_id'];
 $role = $_SESSION['role'];
 
-$stmt = $conn->prepare("SELECT * FROM users WHERE id = :user_id");
-$stmt->bindParam(':user_id', $user_id);
-$stmt->execute();
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$user) {
-  session_destroy();
-  header("Location: login.php");
+// Get user data
+try {
+  $stmt = $conn->prepare("SELECT * FROM users WHERE id = :user_id");
+  $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+  $stmt->execute();
+  $user = $stmt->fetch(PDO::FETCH_ASSOC);
+  
+  if (!$user) {
+    session_destroy();
+    header("Location: login.php");
+    exit();
+  }
+} catch (PDOException $e) {
+  error_log("Database error: " . $e->getMessage());
+  $_SESSION['error'] = "Database error. Please try again later.";
+  header("Location: dashboard.php");
   exit();
+}
+
+// Generate CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 // Handle profile update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
-  $edit_name = $_POST['edit_name'];
-  $edit_username = $_POST['edit_username'];
-  $edit_email = $_POST['edit_email'];
+  // Verify CSRF token
+  if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    $_SESSION['error'] = "Invalid CSRF token.";
+    header("Location: dashboard.php");
+    exit();
+  }
+
+  // Validate inputs
+  $edit_name = trim(filter_input(INPUT_POST, 'edit_name', FILTER_SANITIZE_STRING));
+  $edit_username = trim(filter_input(INPUT_POST, 'edit_username', FILTER_SANITIZE_STRING));
+  $edit_email = trim(filter_input(INPUT_POST, 'edit_email', FILTER_SANITIZE_EMAIL));
+
+  if (empty($edit_name) || empty($edit_username) || empty($edit_email)) {
+    $_SESSION['error'] = "All fields are required.";
+    header("Location: dashboard.php");
+    exit();
+  }
+
+  if (!filter_var($edit_email, FILTER_VALIDATE_EMAIL)) {
+    $_SESSION['error'] = "Invalid email format.";
+    header("Location: dashboard.php");
+    exit();
+  }
 
   // Handle profile pic upload
-  if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] == 0) {
-    $targetDir = "Uploads/";
-    $fileName = basename($_FILES["profile_pic"]["name"]);
-    $targetFile = $targetDir . time() . "_" . $fileName;
+  $profile_pic_path = $user['profile_pic'];
+  if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] == UPLOAD_ERR_OK) {
+    // Validate uploaded file
+    $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+    $file_info = finfo_open(FILEINFO_MIME_TYPE);
+    $mime_type = finfo_file($file_info, $_FILES['profile_pic']['tmp_name']);
+    finfo_close($file_info);
 
-    // Delete previous profile picture if it exists and is not default.png
-    if (!empty($user['profile_pic']) && $user['profile_pic'] !== 'default.png' && file_exists($user['profile_pic'])) {
+    if (!in_array($mime_type, $allowed_types)) {
+      $_SESSION['error'] = "Only JPG, PNG, and GIF images are allowed.";
+      header("Location: dashboard.php");
+      exit();
+    }
+
+    // Check file size (max 2MB)
+    if ($_FILES['profile_pic']['size'] > 2097152) {
+      $_SESSION['error'] = "Image size must be less than 2MB.";
+      header("Location: dashboard.php");
+      exit();
+    }
+
+    $targetDir = "Uploads/";
+    if (!is_dir($targetDir)) {
+      mkdir($targetDir, 0755, true);
+    }
+
+    // Generate unique filename
+    $fileExt = pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION);
+    $fileName = uniqid('profile_', true) . '.' . strtolower($fileExt);
+    $targetFile = $targetDir . $fileName;
+
+    // Delete previous profile picture if it exists and is not default
+    if (!empty($user['profile_pic']) && $user['profile_pic'] !== 'https://i.pinimg.com/474x/0a/52/d5/0a52d5e52f7b81f96538d6b16ed5dc2b.jpg' && file_exists($user['profile_pic'])) {
       unlink($user['profile_pic']);
     }
 
-    move_uploaded_file($_FILES["profile_pic"]["tmp_name"], $targetFile);
-
-    $stmt = $conn->prepare("UPDATE users SET name = :name, username = :username, email = :email, profile_pic = :pic WHERE id = :id");
-    $stmt->bindParam(':pic', $targetFile);
-  } else {
-    $stmt = $conn->prepare("UPDATE users SET name = :name, username = :username, email = :email WHERE id = :id");
+    if (move_uploaded_file($_FILES["profile_pic"]["tmp_name"], $targetFile)) {
+      $profile_pic_path = $targetFile;
+    } else {
+      $_SESSION['error'] = "Failed to upload profile picture.";
+      header("Location: dashboard.php");
+      exit();
+    }
   }
 
-  $stmt->bindParam(':name', $edit_name);
-  $stmt->bindParam(':username', $edit_username);
-  $stmt->bindParam(':email', $edit_email);
-  $stmt->bindParam(':id', $user_id);
-  $stmt->execute();
-
-  header("Location: dashboard.php");
-  exit();
+  // Update user profile
+  try {
+    $stmt = $conn->prepare("UPDATE users SET name = :name, username = :username, email = :email, profile_pic = :pic WHERE id = :id");
+    $stmt->bindParam(':name', $edit_name, PDO::PARAM_STR);
+    $stmt->bindParam(':username', $edit_username, PDO::PARAM_STR);
+    $stmt->bindParam(':email', $edit_email, PDO::PARAM_STR);
+    $stmt->bindParam(':pic', $profile_pic_path, PDO::PARAM_STR);
+    $stmt->bindParam(':id', $user_id, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    $_SESSION['success'] = "Profile updated successfully!";
+    header("Location: dashboard.php");
+    exit();
+  } catch (PDOException $e) {
+    error_log("Database error: " . $e->getMessage());
+    $_SESSION['error'] = "Failed to update profile. Please try again.";
+    header("Location: dashboard.php");
+    exit();
+  }
 }
 
 // Handle profile picture removal
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_profile_pic'])) {
+  // Verify CSRF token
+  if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    $_SESSION['error'] = "Invalid CSRF token.";
+    header("Location: dashboard.php");
+    exit();
+  }
+
   if (!empty($user['profile_pic']) && $user['profile_pic'] !== 'https://i.pinimg.com/474x/0a/52/d5/0a52d5e52f7b81f96538d6b16ed5dc2b.jpg' && file_exists($user['profile_pic'])) {
     unlink($user['profile_pic']);
   }
-  $stmt = $conn->prepare("UPDATE users SET profile_pic = 'https://i.pinimg.com/474x/0a/52/d5/0a52d5e52f7b81f96538d6b16ed5dc2b.jpg' WHERE id = :id");
-  $stmt->bindParam(':id', $user_id);
+  
+  try {
+    $stmt = $conn->prepare("UPDATE users SET profile_pic = 'https://i.pinimg.com/474x/0a/52/d5/0a52d5e52f7b81f96538d6b16ed5dc2b.jpg' WHERE id = :id");
+    $stmt->bindParam(':id', $user_id, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    $_SESSION['success'] = "Profile picture removed successfully!";
+    header("Location: dashboard.php");
+    exit();
+  } catch (PDOException $e) {
+    error_log("Database error: " . $e->getMessage());
+    $_SESSION['error'] = "Failed to remove profile picture. Please try again.";
+    header("Location: dashboard.php");
+    exit();
+  }
+}
+
+// Handle candidate application
+try {
+  $stmt = $conn->prepare("SELECT * FROM candidates WHERE user_id = :user_id");
+  $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
   $stmt->execute();
+  $application = $stmt->fetch(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+  error_log("Database error: " . $e->getMessage());
+  $_SESSION['error'] = "Failed to check application status. Please try again.";
   header("Location: dashboard.php");
   exit();
 }
 
-// Handle candidate application
-$stmt = $conn->prepare("SELECT * FROM candidates WHERE user_id = :user_id");
-$stmt->bindParam(':user_id', $user_id);
-$stmt->execute();
-$application = $stmt->fetch(PDO::FETCH_ASSOC);
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  if (isset($_POST['apply'])) {
-    $stmt = $conn->prepare("INSERT INTO candidates (user_id, name, username, email, status, semester, election_type) 
-                            VALUES (:user_id, :name, :username, :email, 'pending', :semester, 'CR')");
-    $stmt->bindParam(':user_id', $user_id);
-    $stmt->bindParam(':name', $user['name']);
-    $stmt->bindParam(':username', $user['username']);
-    $stmt->bindParam(':email', $user['email']);
-    $stmt->bindParam(':semester', $user['semester']);
-    $stmt->execute();
+  // Verify CSRF token for all POST actions
+  if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    $_SESSION['error'] = "Invalid CSRF token.";
     header("Location: dashboard.php");
     exit();
+  }
+
+  if (isset($_POST['apply'])) {
+    try {
+      $stmt = $conn->prepare("INSERT INTO candidates (user_id, name, username, email, status, semester, election_type) 
+                              VALUES (:user_id, :name, :username, :email, 'pending', :semester, 'CR')");
+      $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+      $stmt->bindParam(':name', $user['name'], PDO::PARAM_STR);
+      $stmt->bindParam(':username', $user['username'], PDO::PARAM_STR);
+      $stmt->bindParam(':email', $user['email'], PDO::PARAM_STR);
+      $stmt->bindParam(':semester', $user['semester'], PDO::PARAM_STR);
+      $stmt->execute();
+      
+      $_SESSION['success'] = "Application submitted successfully!";
+      header("Location: dashboard.php");
+      exit();
+    } catch (PDOException $e) {
+      error_log("Database error: " . $e->getMessage());
+      $_SESSION['error'] = "Failed to submit application. Please try again.";
+      header("Location: dashboard.php");
+      exit();
+    }
   }
 
   if (isset($_POST['cancel'])) {
-    $stmt = $conn->prepare("DELETE FROM candidates WHERE user_id = :user_id");
-    $stmt->bindParam(':user_id', $user_id);
-    $stmt->execute();
-    header("Location: dashboard.php");
-    exit();
+    try {
+      $stmt = $conn->prepare("DELETE FROM candidates WHERE user_id = :user_id");
+      $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+      $stmt->execute();
+      
+      $_SESSION['success'] = "Application cancelled successfully!";
+      header("Location: dashboard.php");
+      exit();
+    } catch (PDOException $e) {
+      error_log("Database error: " . $e->getMessage());
+      $_SESSION['error'] = "Failed to cancel application. Please try again.";
+      header("Location: dashboard.php");
+      exit();
+    }
   }
 
   if (isset($_POST['approve']) && isset($_POST['app_id'])) {
-    $stmt = $conn->prepare("UPDATE candidates SET status = 'approved' WHERE user_id = :app_id");
-    $stmt->bindParam(':app_id', $_POST['app_id']);
-    $stmt->execute();
-    header("Location: dashboard.php");
-    exit();
+    $app_id = filter_input(INPUT_POST, 'app_id', FILTER_SANITIZE_NUMBER_INT);
+    
+    try {
+      $stmt = $conn->prepare("UPDATE candidates SET status = 'approved' WHERE user_id = :app_id");
+      $stmt->bindParam(':app_id', $app_id, PDO::PARAM_INT);
+      $stmt->execute();
+      
+      $_SESSION['success'] = "Application approved successfully!";
+      header("Location: dashboard.php");
+      exit();
+    } catch (PDOException $e) {
+      error_log("Database error: " . $e->getMessage());
+      $_SESSION['error'] = "Failed to approve application. Please try again.";
+      header("Location: dashboard.php");
+      exit();
+    }
   }
 
   if (isset($_POST['reject']) && isset($_POST['app_id'])) {
-    $stmt = $conn->prepare("UPDATE candidates SET status = 'rejected' WHERE user_id = :app_id");
-    $stmt->bindParam(':app_id', $_POST['app_id']);
-    $stmt->execute();
-    header("Location: dashboard.php");
-    exit();
+    $app_id = filter_input(INPUT_POST, 'app_id', FILTER_SANITIZE_NUMBER_INT);
+    
+    try {
+      $stmt = $conn->prepare("UPDATE candidates SET status = 'rejected' WHERE user_id = :app_id");
+      $stmt->bindParam(':app_id', $app_id, PDO::PARAM_INT);
+      $stmt->execute();
+      
+      $_SESSION['success'] = "Application rejected successfully!";
+      header("Location: dashboard.php");
+      exit();
+    } catch (PDOException $e) {
+      error_log("Database error: " . $e->getMessage());
+      $_SESSION['error'] = "Failed to reject application. Please try again.";
+      header("Location: dashboard.php");
+      exit();
+    }
   }
 }
 ?>
 
 <?php include 'include/sidebar.php'; ?>
-
 <style>
   body {
     background-color: #f4f7fc;
@@ -316,9 +473,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 </style>
-
 <div class="main-content">
   <div class="container mt-4">
+    <!-- Display success/error messages -->
+    <?php if (isset($_SESSION['success'])): ?>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?php echo htmlspecialchars($_SESSION['success']); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
+    
+    <?php if (isset($_SESSION['error'])): ?>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <?php echo htmlspecialchars($_SESSION['error']); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
+
     <div class="card">
       <div class="card-header">Dashboard</div>
       <div class="card-body">
@@ -349,6 +522,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label class="form-label">Semester</label>
             <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['semester']); ?>" disabled>
           </div>
+          <div class="mb-3">
+            <label class="form-label">Year of Joining</label>
+            <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['year_of_joining'] ?? 'N/A'); ?>" disabled>
+          </div>
         </form>
 
         <div class="mt-4">
@@ -365,6 +542,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </div>
               <div class="modal-body">
                 <form method="POST" action="" enctype="multipart/form-data">
+                  <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                   <div class="mb-3 text-center">
                     <label class="form-label">Profile Picture</label>
                     <div>
@@ -372,8 +550,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Upload New Photo</label>
-                    <input type="file" class="form-control" name="profile_pic" id="profilePicInput" accept="image/*">
+                    <label class="form-label">Upload New Photo (Max 2MB)</label>
+                    <input type="file" class="form-control" name="profile_pic" id="profilePicInput" accept="image/jpeg, image/png, image/gif">
                   </div>
                   <div class="mb-3">
                     <label class="form-label">Full Name</label>
@@ -390,6 +568,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   <button type="submit" name="update_profile" class="btn btn-primary w-100">Save Changes</button>
                 </form>
                 <form method="POST" action="" class="mt-3">
+                  <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                   <button type="submit" name="remove_profile_pic" class="btn btn-danger btn-sm w-100">Remove Profile Picture</button>
                 </form>
               </div>
@@ -407,21 +586,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if ($application['status'] == 'pending'): ?>
               <div class="alert alert-info">Your application is under review.</div>
               <form method="POST" action="">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <button type="submit" name="cancel" class="btn btn-danger">Cancel Request</button>
               </form>
             <?php elseif ($application['status'] == 'approved'): ?>
               <div class="alert alert-success">Congratulations! Your application has been approved.</div>
               <form method="POST" action="">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <button type="submit" name="cancel" class="btn btn-danger">Withdraw Application</button>
               </form>
             <?php elseif ($application['status'] == 'rejected'): ?>
               <div class="alert alert-danger">Sorry, your application has been rejected.</div>
               <form method="POST" action="">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <button type="submit" name="apply" class="btn btn-primary">Retry Application</button>
               </form>
             <?php endif; ?>
           <?php else: ?>
             <form method="POST" action="">
+              <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
               <button type="submit" name="apply" class="btn btn-primary">Apply for Candidate</button>
             </form>
           <?php endif; ?>
@@ -439,45 +622,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <th>Name</th>
                 <th>Username</th>
                 <th>Email</th>
+                <th>Semester</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               <?php
-              $stmt = $conn->prepare("SELECT * FROM candidates");
-              $stmt->execute();
-              $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+              try {
+                $stmt = $conn->prepare("SELECT * FROM candidates");
+                $stmt->execute();
+                $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-              foreach ($applications as $app): ?>
-                <tr>
-                  <td><?php echo htmlspecialchars($app['name']); ?></td>
-                  <td><?php echo htmlspecialchars($app['username']); ?></td>
-                  <td><?php echo htmlspecialchars($app['email']); ?></td>
-                  <td>
-                    <?php
-                    if ($app['status'] == 'approved') {
-                      echo "<span class='badge bg-success'>Approved</span>";
-                    } elseif ($app['status'] == 'rejected') {
-                      echo "<span class='badge bg-danger'>Rejected</span>";
-                    } else {
-                      echo "<span class='badge bg-warning text-dark'>Pending</span>";
-                    }
-                    ?>
-                  </td>
-                  <td>
-                    <?php if ($app['status'] == 'pending'): ?>
-                      <form method="POST" action="">
-                        <input type="hidden" name="app_id" value="<?php echo $app['user_id']; ?>">
-                        <button type="submit" name="approve" class="btn btn-success btn-sm me-2">Approve</button>
-                        <button type="submit" name="reject" class="btn btn-danger btn-sm">Reject</button>
-                      </form>
-                    <?php else: ?>
-                      <button class="btn btn-secondary btn-sm" disabled>No Action</button>
-                    <?php endif; ?>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
+                foreach ($applications as $app): ?>
+                  <tr>
+                    <td><?php echo htmlspecialchars($app['name']); ?></td>
+                    <td><?php echo htmlspecialchars($app['username']); ?></td>
+                    <td><?php echo htmlspecialchars($app['email']); ?></td>
+                    <td><?php echo htmlspecialchars($app['semester']); ?></td>
+                    <td>
+                      <?php
+                      if ($app['status'] == 'approved') {
+                        echo "<span class='badge bg-success'>Approved</span>";
+                      } elseif ($app['status'] == 'rejected') {
+                        echo "<span class='badge bg-danger'>Rejected</span>";
+                      } else {
+                        echo "<span class='badge bg-warning text-dark'>Pending</span>";
+                      }
+                      ?>
+                    </td>
+                    <td>
+                      <?php if ($app['status'] == 'pending'): ?>
+                        <form method="POST" action="">
+                          <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                          <input type="hidden" name="app_id" value="<?php echo $app['user_id']; ?>">
+                          <button type="submit" name="approve" class="btn btn-success btn-sm me-2">Approve</button>
+                          <button type="submit" name="reject" class="btn btn-danger btn-sm">Reject</button>
+                        </form>
+                      <?php else: ?>
+                        <button class="btn btn-secondary btn-sm" disabled>No Action</button>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach;
+              } catch (PDOException $e) {
+                error_log("Database error: " . $e->getMessage());
+                echo "<tr><td colspan='6' class='text-center text-danger'>Error loading applications</td></tr>";
+              }
+              ?>
             </tbody>
           </table>
         </div>
@@ -490,6 +682,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   document.getElementById('profilePicInput').addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (file) {
+      // Check file size
+      if (file.size > 2097152) {
+        alert('File size must be less than 2MB');
+        event.target.value = '';
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = function(e) {
         document.getElementById('profilePreview').src = e.target.result;

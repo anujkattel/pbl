@@ -314,8 +314,8 @@ if (isset($_GET['semester']) && isset($_GET['election_type'])) {
                 <div class="mb-3">
                     <label for="voting_status" class="form-label">Voting Status:</label>
                     <select name="voting_status" id="voting_status" class="form-select" aria-label="Select voting status">
-                        <option value="open" <?php echo $current_status === '1' ? 'selected' : ''; ?>>Open</option>
-                        <option value="closed" <?php echo $current_status === '0' ? 'selected' : ''; ?>>Closed</option>
+                        <option value="open" <?php echo $current_status == '1' ? 'selected' : ''; ?>>Open</option>
+                        <option value="closed" <?php echo $current_status == '0' ? 'selected' : ''; ?>>Closed</option>
                     </select>
                 </div>
                 <div class="mb-3">

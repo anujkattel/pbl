@@ -44,428 +44,547 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Online Voting System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #10b981;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #d4fcff, #f3d4ff);
-            color: #333;
-            overflow-x: hidden;
-            position: relative;
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: var(--dark);
+            line-height: 1.6;
         }
 
-        #particles {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: transparent;
-        }
-
-        header {
-            background: linear-gradient(to right, #5a0db5, #1e90ff);
+        .hero {
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
             color: white;
-            padding: 60px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            padding: 5rem 1rem;
             position: relative;
             overflow: hidden;
         }
 
-        header::before {
+        .hero::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('https://www.transparenttextures.com/patterns/cubes.png');
-            opacity: 0.15;
+            background: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
+            opacity: 0.1;
         }
 
-        header .left {
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+        }
+
+        .hero-text {
             flex: 1;
-            text-align: left;
         }
 
-        header h1 {
-            font-size: 3.2rem;
-            margin-bottom: 15px;
-            animation: fadeInDown 1s ease-out;
+        .hero-image {
+            flex: 1;
+            display: flex;
+            justify-content: center;
         }
 
-        header p {
-            font-size: 1.4rem;
-            margin: 0;
-            animation: fadeInUp 1s ease-out 0.3s;
-            animation-fill-mode: backwards;
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
         }
 
-        header .right {
-            flex: 0 0 300px;
-            text-align: right;
+        .hero p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            max-width: 600px;
         }
 
-        header .right img {
+        .hero img {
             max-width: 100%;
             height: auto;
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-            transition: transform 0.3s ease;
-        }
-
-        header .right img:hover {
-            transform: scale(1.05);
-        }
-
-        .vote-banner {
-            text-align: center;
-            padding: 20px;
-            background: linear-gradient(to right, #28a745, #20c997);
-            color: white;
-            margin: 20px 0;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            animation: slideInUp 1s ease-out;
-        }
-
-        .vote-banner h3 {
-            margin: 0;
-            font-size: 1.8rem;
-        }
-
-        .vote-banner #vote-timer {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-top: 10px;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
         .container {
             max-width: 1200px;
-            margin: 50px auto;
-            padding: 0 20px;
+            margin: 0 auto;
+            padding: 0 1rem;
         }
 
-        .cta {
+        .vote-alert {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: -2rem auto 3rem auto;
+            max-width: 1200px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-left: 4px solid var(--success);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .vote-alert.closed {
+            border-left-color: var(--danger);
+        }
+
+        .vote-alert i {
+            font-size: 1.5rem;
+            color: var(--success);
+        }
+
+        .vote-alert.closed i {
+            color: var(--danger);
+        }
+
+        .vote-alert-content {
+            flex: 1;
+        }
+
+        .vote-alert h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .vote-timer {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .auth-section {
             text-align: center;
-            margin: 40px 0;
-            animation: fadeIn 1s ease-out;
+            margin: 3rem 0;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-width: 500px;
+            margin: 0 auto;
         }
 
         .profile-pic {
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
-            border: 5px solid #fff;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-            margin-bottom: 15px;
-            transition: transform 0.3s;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
         }
 
-        .profile-pic:hover {
-            transform: scale(1.05);
+        .profile-card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
         }
 
-        .cta p {
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            color: #444;
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
         }
 
-        .cta a {
-            display: inline-block;
-            text-decoration: none;
-            background: #1e90ff;
-            color: white;
-            padding: 15px 40px;
-            margin: 10px;
-            font-size: 1.2rem;
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
             font-weight: 600;
-            border-radius: 50px;
-            transition: all 0.3s ease;
-            box-shadow: 0 6px 15px rgba(30, 144, 255, 0.4);
-            position: relative;
-            overflow: hidden;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            gap: 0.5rem;
         }
 
-        .cta a::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: 0.5s;
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
         }
 
-        .cta a:hover::before {
-            left: 100%;
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
         }
 
-        .cta a:hover {
-            background: #1a5cd8;
-            transform: translateY(-3px);
+        .btn-outline {
+            background-color: white;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: #f1f5ff;
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #0d9f6e;
+            transform: translateY(-2px);
         }
 
         .section {
-            margin-bottom: 80px;
-            background: #fff;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            animation: slideInUp 1s ease-out;
-            background: url('https://www.transparenttextures.com/patterns/subtle-dots.png');
+            background: white;
+            border-radius: 1rem;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         .section h2 {
-            color: #5a0db5;
-            font-size: 2.2rem;
-            margin-bottom: 30px;
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 0.75rem;
         }
 
-        .section ul {
-            list-style-type: none;
-            padding: 0;
+        .step-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
         }
 
-        .section ul li {
-            margin-bottom: 20px;
-            padding: 20px;
-            background: #f9f9f9;
-            border-radius: 12px;
-            font-size: 1.2rem;
-            transition: transform 0.3s, box-shadow 0.3s;
+        .step-card {
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .step-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            gap: 15px;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
         }
 
-        .section ul li:hover {
-            transform: translateX(10px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        .step-card h3 {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
         }
 
-        .section ul li i {
-            color: #28a745;
+        .step-card p {
+            color: var(--gray);
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .benefit-card {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .benefit-icon {
+            color: var(--success);
             font-size: 1.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .benefit-content h3 {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .benefit-content p {
+            color: var(--gray);
         }
 
         footer {
-            background: #1a1a1a;
-            color: #ccc;
+            background: var(--dark);
+            color: white;
+            padding: 3rem 1rem;
+            margin-top: 3rem;
             text-align: center;
-            padding: 30px 10px;
-            font-size: 1rem;
-            position: relative;
-            width: 100%;
         }
 
         .back-to-top {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #5a0db5;
+            bottom: 2rem;
+            right: 2rem;
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
             color: white;
-            padding: 15px;
             border-radius: 50%;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            display: none;
-            transition: opacity 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
         }
 
         .back-to-top:hover {
-            background: #4a0c9a;
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            background: var(--primary-dark);
+            transform: translateY(-3px);
         }
 
         @media (max-width: 768px) {
-            header {
+            .hero-content {
                 flex-direction: column;
                 text-align: center;
             }
 
-            header .left {
+            .hero-text {
                 text-align: center;
             }
 
-            header .right {
-                margin-top: 20px;
-                flex: 0 0 200px;
+            .hero p {
+                margin-left: auto;
+                margin-right: auto;
             }
 
-            header h1 {
-                font-size: 2.5rem;
+            .btn-group {
+                flex-direction: column;
             }
 
-            header p {
-                font-size: 1.2rem;
+            .vote-alert {
+                flex-direction: column;
+                text-align: center;
+                margin-top: -4rem;
             }
+        }
 
-            .section {
-                padding: 20px;
-            }
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
-            .section h2 {
-                font-size: 1.9rem;
-            }
-
-            .cta a {
-                padding: 12px 30px;
-                font-size: 1.1rem;
-            }
-
-            .vote-banner h3 {
-                font-size: 1.5rem;
-            }
-
-            .vote-banner #vote-timer {
-                font-size: 1.3rem;
-            }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
         }
     </style>
 </head>
 
 <body>
-
-    <div id="particles"></div>
-
-    <header id="header">
-        <div class="left">
-            <h1>Online Voting Portal</h1>
-            <p>Your voice matters. Cast your vote securely and easily!</p>
-        </div>
-        <div class="right">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRFmN7kE6YWUVmYdY0KszA__CYMlhY-q6B6Nw&s" alt="Election Campaign" />
+    <header class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>Shape Your Community's Future</h1>
+                <p>Cast your vote securely in our online elections and make your voice heard in important decisions that affect everyone.</p>
+                <?php if (!isset($_SESSION['user_id'])): ?>
+                    <a href="signup.php" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Register to Vote
+                    </a>
+                <?php endif; ?>
+            </div>
+            <div class="hero-image">
+                <img src="https://images.unsplash.com/photo-1551524559-8af4e6624178?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80" alt="Voting illustration">
+            </div>
         </div>
     </header>
 
     <div class="container">
-        <?php if ($general_voting_open || $caas_voting_open): ?>
-            <div class="vote-banner">
-                <h3>🗳️ Voting is Open!</h3>
-                <div id="vote-timer"><?php echo $voting_end_time ? 'Loading...' : 'No end time set'; ?></div>
-            </div>
-        <?php endif; ?>
+        
 
         <?php if (isset($_SESSION['user_id']) && isset($_SESSION['name'])): ?>
-            <div class="cta">
-                <?php
-                $profilePic = !empty($_SESSION['profile_pic']) ? $_SESSION['profile_pic'] : 'https://i.pinimg.com/474x/0a/52/d5/0a52d5e52f7b81f96538d6b16ed5dc2b.jpg';
-                ?>
-                <img src="<?php echo htmlspecialchars($profilePic); ?>" alt="Profile Picture" class="profile-pic" width="150" height="150">
-                <p>Welcome back, <strong><?php echo htmlspecialchars($_SESSION['name']); ?></strong>!</p>
-                <a href="vote.php" data-bs-toggle="tooltip" title="Cast your vote now!">Go to Vote</a>
-                <a href="logout.php" data-bs-toggle="tooltip" title="Sign out of your account">Logout</a>
+            <div class="auth-section fade-in">
+                <div class="profile-card">
+                    <?php
+                    $profilePic = !empty($_SESSION['profile_pic']) ? $_SESSION['profile_pic'] : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                    ?>
+                    <img src="<?php echo htmlspecialchars($profilePic); ?>" alt="Profile Picture" class="profile-pic">
+                    <h2>Welcome, <?php echo htmlspecialchars($_SESSION['name']); ?>!</h2>
+                    <div class="btn-group">
+                        <a href="vote.php" class="btn btn-primary">
+                            <i class="fas fa-vote-yea"></i> Go to Voting
+                        </a>
+                        <a href="logout.php" class="btn btn-outline">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
             </div>
         <?php else: ?>
-            <div class="cta">
-                <p>Ready to make your vote count?</p>
-                <a href="login.php" data-bs-toggle="tooltip" title="Sign in to vote">Login</a>
-                <a href="signup.php" data-bs-toggle="tooltip" title="Create an account">Register</a>
+            <div class="auth-section fade-in">
+                <div class="profile-card">
+                    <h2>Ready to make your voice heard?</h2>
+                    <p>Login or register to participate in the current election.</p>
+                    <div class="btn-group">
+                        <a href="login.php" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                        <a href="signup.php" class="btn btn-outline">
+                            <i class="fas fa-user-plus"></i> Register
+                        </a>
+                    </div>
+                </div>
             </div>
         <?php endif; ?>
 
-        <div class="section">
-            <h2><i class="fas fa-vote-yea"></i> How to Vote</h2>
-            <ul>
-                <li><i class="fas fa-check-circle"></i> Register or log in with your college ID.</li>
-                <li><i class="fas fa-check-circle"></i> Go to the election section after login.</li>
-                <li><i class="fas fa-check-circle"></i> Choose the election type (e.g., General, CAAS).</li>
-                <li><i class="fas fa-check-circle"></i> View candidates based on your semester.</li>
-                <li><i class="fas fa-check-circle"></i> Select your candidate and submit your vote.</li>
-                <li><i class="fas fa-check-circle"></i> Your vote is recorded and admin is notified.</li>
-            </ul>
+        <div class="section fade-in">
+            <h2><i class="fas fa-walking"></i> How Voting Works</h2>
+            <div class="step-list">
+                <div class="step-card">
+                    <div class="step-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <h3>Create Your Account</h3>
+                    <p>Register with your student credentials to verify your eligibility to vote.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
+                    <h3>Login Securely</h3>
+                    <p>Access the voting portal with your unique credentials.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon">
+                        <i class="fas fa-list-ul"></i>
+                    </div>
+                    <h3>View Candidates</h3>
+                    <p>Browse all candidates running in your specific election.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>Cast Your Vote</h3>
+                    <p>Select your preferred candidates and submit your ballot.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3>Receive Confirmation</h3>
+                    <p>Get instant verification that your vote was recorded.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h3>Secure & Anonymous</h3>
+                    <p>Rest assured your vote remains confidential and tamper-proof.</p>
+                </div>
+            </div>
         </div>
 
-        <div class="section">
-            <h2><i class="fas fa-bullhorn"></i> Why Vote?</h2>
-            <ul>
-                <li><i class="fas fa-star"></i> Empower your student council.</li>
-                <li><i class="fas fa-star"></i> Shape future decisions in the college.</li>
-                <li><i class="fas fa-star"></i> Make your voice heard in democratic processes.</li>
-            </ul>
+        <div class="section fade-in">
+            <h2><i class="fas fa-star"></i> Why Your Vote Matters</h2>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <i class="fas fa-bullhorn"></i>
+                    </div>
+                    <div class="benefit-content">
+                        <h3>Amplify Your Voice</h3>
+                        <p>Elections determine who represents your interests in important decisions.</p>
+                    </div>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="benefit-content">
+                        <h3>Shape Your Community</h3>
+                        <p>Elect leaders who will work to improve your academic environment.</p>
+                    </div>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <div class="benefit-content">
+                        <h3>Exercise Your Rights</h3>
+                        <p>Voting is both a privilege and responsibility in a democratic system.</p>
+                    </div>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="benefit-content">
+                        <h3>Influence Change</h3>
+                        <p>Collective votes lead to tangible improvements in policies and services.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <footer>
-        © <?php echo date('Y'); ?> Online Voting System | All rights reserved.
+        <div class="container">
+            <p>&copy; <?php echo date('Y'); ?> Online Voting System. All rights reserved.</p>
+            <p>A secure platform for democratic decision-making.</p>
+        </div>
     </footer>
 
-    <a href="#header" class="back-to-top" aria-label="Back to top"><i class="fas fa-chevron-up"></i></a>
+    <a href="#" class="back-to-top" id="backToTop">
+        <i class="fas fa-arrow-up"></i>
+    </a>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Particle Background
-        particlesJS('particles', {
-            particles: {
-                number: { value: 60, density: { enable: true, value_area: 800 } },
-                color: { value: '#ffffff' },
-                shape: { type: 'circle' },
-                opacity: { value: 0.4, random: true },
-                size: { value: 3, random: true },
-                line_linked: { enable: true, distance: 150, color: '#ffffff', opacity: 0.3, width: 1 },
-                move: { enable: true, speed: 2, direction: 'none', random: false }
-            },
-            interactivity: {
-                detect_on: 'canvas',
-                events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' } },
-                modes: { repulse: { distance: 100 }, push: { particles_nb: 4 } }
-            },
-            retina_detect: true
-        });
-
         // Voting Timer
         const endTime = new Date('<?php echo $voting_end_time; ?>').getTime();
         const timer = document.getElementById('vote-timer');
 
         function updateTimer() {
             if (!endTime || isNaN(endTime)) {
-                if (timer) timer.innerHTML = 'No end time set';
+                if (timer) timer.innerHTML = 'Voting is currently active';
                 return;
             }
 
@@ -473,15 +592,22 @@ try {
             const distance = endTime - now;
 
             if (distance < 0) {
-                if (timer) timer.innerHTML = 'Voting has ended!';
+                if (timer) timer.innerHTML = 'Voting period has ended';
                 return;
             }
 
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
             const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-            if (timer) timer.innerHTML = `Time left: ${hours}h ${minutes}m ${seconds}s`;
+            let timeString = '';
+            if (days > 0) timeString += `${days}d `;
+            if (hours > 0 || days > 0) timeString += `${hours}h `;
+            if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes}m `;
+            timeString += `${seconds}s`;
+
+            if (timer) timer.innerHTML = `Time remaining: ${timeString}`;
         }
 
         if (timer) {
@@ -489,29 +615,41 @@ try {
             updateTimer();
         }
 
-        // Smooth Scroll
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
-        });
-
-        // Back to Top
-        const backToTop = document.querySelector('.back-to-top');
+        // Back to Top Button
+        const backToTop = document.getElementById('backToTop');
         window.addEventListener('scroll', () => {
             if (window.scrollY > 300) {
-                backToTop.style.display = 'block';
+                backToTop.classList.add('visible');
             } else {
-                backToTop.style.display = 'none';
+                backToTop.classList.remove('visible');
             }
         });
 
-        // Tooltips
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-        tooltipTriggerList.forEach(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+        backToTop.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Add fade-in animation to elements as they come into view
+        const fadeElements = document.querySelectorAll('.fade-in');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = 1;
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        fadeElements.forEach(el => {
+            el.style.opacity = 0;
+            el.style.transition = 'opacity 0.6s ease-out';
+            observer.observe(el);
+        });
     </script>
 </body>
 
